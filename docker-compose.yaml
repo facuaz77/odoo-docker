@@ -1,0 +1,40 @@
+services:
+  db:
+    image: postgres:${POSTGRES_VERSION}
+    container_name: odoo-db
+    environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=odoo
+      - POSTGRES_PASSWORD=odoo
+    volumes:
+      - ./db:/var/lib/postgresql/data:cached
+      - /dev/shm:/dev/shm
+    ports:
+      - "5432:5432"
+    user: "${UID}:${GID}" # for linux users, if you are user of mac or windows, you can remove this line
+
+  web:
+    image: odoo-15:${ODOO_VERSION}
+    container_name: odoo-web
+    depends_on:
+      - db
+    ports:
+      - "8069:8069" 
+      - "8072:8072" # longpolling
+      - "5678:5678" # debug
+    tty: true
+    environment:
+      - HOST=db
+      - USER=odoo
+      - PASSWORD=odoo
+      - PYTHONDONTWRITEBYTECODE=1
+    command: /usr/bin/python3 -m debugpy --listen 0.0.0.0:5678 /usr/bin/odoo --db_user=odoo --db_host=db --db_password=odoo --dev=reload
+    volumes:
+      - ./web/odoo.conf:/etc/odoo/odoo.conf:cached
+      - ./web/data:/mnt/odoo-data:cached
+      - ./web/addons:/mnt/extra-addons:cached
+      # - /home/user/odoo-enterprise/enterprise-16.0:/mnt/enterprise:cached  
+      # - /home/user/odoo-make/odoo15/custom-addons/copelco:/mnt/calyx-addons:cached  add your path 
+      - /dev/shm:/dev/shm
+    user: "${UID}:${GID}" # for linux users, if you are user of mac or windows, you can remove this line
+    restart: always
